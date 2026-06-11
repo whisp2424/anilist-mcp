@@ -5,6 +5,30 @@ import type { ConfigSchema } from "../utils/schemas.js";
 import { requireAuth } from "../utils/auth.js";
 import { UpdateEntryOptionsSchema } from "../utils/schemas.js";
 
+/**
+ * Bypasses the 'Provided object has a nested value!' error in anilist-node's headerBuilder.
+ * The library checks (typeof value === 'object') and throws if true, except for specific date keys.
+ * By using a stringified representation that is still valid GraphQL input, we can trick the 
+ * library's string concatenation logic.
+ */
+function bypassNestedError(options: any) {
+  const processed = { ...options };
+  
+  if (Array.isArray(processed.customLists)) {
+    // Convert array to GraphQL string format like ["List1","List2"]
+    // The library will do: query += "customLists: " + processed.customLists;
+    // resulting in: customLists: ["List1","List2"]
+    processed.customLists = `["${processed.customLists.join('","')}"]`;
+  }
+  
+  if (Array.isArray(processed.advancedScores)) {
+    // Convert array to GraphQL string format like [10,20,30]
+    processed.advancedScores = `[${processed.advancedScores.join(",")}]`;
+  }
+
+  return processed;
+}
+
 export function registerListsTools(
   server: McpServer,
   anilist: AniList,
@@ -32,7 +56,8 @@ export function registerListsTools(
           return auth.errorResponse;
         }
 
-        const result = await anilist.lists.addEntry(id, options);
+        const processedOptions = bypassNestedError(options);
+        const result = await anilist.lists.addEntry(id, processedOptions);
         return {
           content: [
             {
@@ -177,7 +202,8 @@ export function registerListsTools(
           return auth.errorResponse;
         }
 
-        const result = await anilist.lists.updateEntry(id, options);
+        const processedOptions = bypassNestedError(options);
+        const result = await anilist.lists.updateEntry(id, processedOptions);
         return {
           content: [
             {
