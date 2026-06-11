@@ -5,28 +5,58 @@ import type { ConfigSchema } from "../utils/schemas.js";
 import { requireAuth } from "../utils/auth.js";
 import { UpdateEntryOptionsSchema } from "../utils/schemas.js";
 
-/**
- * Bypasses the 'Provided object has a nested value!' error in anilist-node's headerBuilder.
- * The library checks (typeof value === 'object') and throws if true, except for specific date keys.
- * By using a stringified representation that is still valid GraphQL input, we can trick the 
- * library's string concatenation logic.
- */
-function bypassNestedError(options: any) {
-  const processed = { ...options };
-  
-  if (Array.isArray(processed.customLists)) {
-    // Convert array to GraphQL string format like ["List1","List2"]
-    // The library will do: query += "customLists: " + processed.customLists;
-    // resulting in: customLists: ["List1","List2"]
-    processed.customLists = `["${processed.customLists.join('","')}"]`;
-  }
-  
-  if (Array.isArray(processed.advancedScores)) {
-    // Convert array to GraphQL string format like [10,20,30]
-    processed.advancedScores = `[${processed.advancedScores.join(",")}]`;
+async function saveMediaListEntry(token: string, variables: any) {
+  const query = `
+    mutation ($id: Int, $mediaId: Int, $status: MediaListStatus, $score: Float, $scoreRaw: Int, $progress: Int, $progressVolumes: Int, $repeat: Int, $priority: Int, $private: Boolean, $notes: String, $hiddenFromStatusLists: Boolean, $customLists: [String], $advancedScores: [Float], $startedAt: FuzzyDateInput, $completedAt: FuzzyDateInput) {
+      SaveMediaListEntry (id: $id, mediaId: $mediaId, status: $status, score: $score, scoreRaw: $scoreRaw, progress: $progress, progressVolumes: $progressVolumes, repeat: $repeat, priority: $priority, private: $private, notes: $notes, hiddenFromStatusLists: $hiddenFromStatusLists, customLists: $customLists, advancedScores: $advancedScores, startedAt: $startedAt, completedAt: $completedAt) {
+        id
+        mediaId
+        status
+        score
+        progress
+        progressVolumes
+        repeat
+        priority
+        private
+        notes
+        hiddenFromStatusLists
+        customLists
+        advancedScores
+        startedAt {
+          year
+          month
+          day
+        }
+        completedAt {
+          year
+          month
+          day
+        }
+        updatedAt
+        createdAt
+      }
+    }
+  `;
+
+  const response = await fetch("https://graphql.anilist.co", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      query,
+      variables,
+    }),
+  });
+
+  const data = (await response.json()) as any;
+  if (!response.ok) {
+    throw new Error(data.errors?.[0]?.message || "Failed to save list entry");
   }
 
-  return processed;
+  return data.data.SaveMediaListEntry;
 }
 
 export function registerListsTools(
@@ -34,13 +64,13 @@ export function registerListsTools(
   anilist: AniList,
   config: z.infer<typeof ConfigSchema>,
 ) {
-  // anilist.lists.addEntry()
+  // anilist.lists.addEntry() replacement
   server.tool(
     "add_list_entry",
     "[Requires Login] Add an entry to the authorized user's list",
     {
       id: z.number().describe("The AniList ID of the media entry to add"),
-      options: UpdateEntryOptionsSchema,
+      options: UpdateEntryOptionsSchema.partial().optional(),
     },
     {
       title: "Add List Entry",
@@ -52,12 +82,14 @@ export function registerListsTools(
     async ({ id, options }) => {
       try {
         const auth = requireAuth(config.anilistToken);
-        if (!auth.isAuthorized) {
+        if (!auth.isAuthorized || !config.anilistToken) {
           return auth.errorResponse;
         }
 
-        const processedOptions = bypassNestedError(options);
-        const result = await anilist.lists.addEntry(id, processedOptions);
+        const result = await saveMediaListEntry(config.anilistToken, {
+          mediaId: id,
+          ...options,
+        });
         return {
           content: [
             {
@@ -180,13 +212,13 @@ export function registerListsTools(
     },
   );
 
-  // anilist.lists.updateEntry()
+  // anilist.lists.updateEntry() replacement
   server.tool(
     "update_list_entry",
     "[Requires Login] Update an entry on the authorized user's list",
     {
       id: z.number().describe("The AniList list ID of the entry to edit"),
-      options: UpdateEntryOptionsSchema,
+      options: UpdateEntryOptionsSchema.partial().optional(),
     },
     {
       title: "Update List Entry",
@@ -198,12 +230,14 @@ export function registerListsTools(
     async ({ id, options }) => {
       try {
         const auth = requireAuth(config.anilistToken);
-        if (!auth.isAuthorized) {
+        if (!auth.isAuthorized || !config.anilistToken) {
           return auth.errorResponse;
         }
 
-        const processedOptions = bypassNestedError(options);
-        const result = await anilist.lists.updateEntry(id, processedOptions);
+        const result = await saveMediaListEntry(config.anilistToken, {
+          id: id,
+          ...options,
+        });
         return {
           content: [
             {
