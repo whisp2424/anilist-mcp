@@ -23,17 +23,17 @@ export function registerUserTools(
       openWorldHint: true,
     },
     async ({ user }) => {
-        try {
-            const userInfo = await anilist.user.all(user);
-            return {
-                content: [{ type: "text", text: JSON.stringify(userInfo, null, 2) }],
-            };
-        } catch (error: any) {
-            return {
-                content: [{ type: "text", text: `Error: ${error.message}` }],
-                isError: true,
-            };
-        }
+      try {
+        const userInfo = await anilist.user.all(user);
+        return {
+          content: [{ type: "text", text: JSON.stringify(userInfo, null, 2) }],
+        };
+      } catch (error: any) {
+        return {
+          content: [{ type: "text", text: `Error: ${error.message}` }],
+          isError: true,
+        };
+      }
     },
   );
 
@@ -51,9 +51,13 @@ export function registerUserTools(
       openWorldHint: true,
     },
     async ({ userID }) => {
-        return await graphqlMutation(config.anilistToken, async () => {
-            return await anilist.user.follow(userID);
-        }, "followUser");
+      return await graphqlMutation(
+        config.anilistToken,
+        async () => {
+          return await anilist.user.follow(userID);
+        },
+        "followUser",
+      );
     },
   );
 
@@ -67,19 +71,19 @@ export function registerUserTools(
       openWorldHint: true,
     },
     async () => {
-        try {
-            const auth = requireAuth(config.anilistToken);
-            if (!auth.isAuthorized) return auth.errorResponse;
-            const profile = await anilist.user.getAuthorized();
-            return {
-                content: [{ type: "text", text: JSON.stringify(profile, null, 2) }],
-            };
-        } catch (error: any) {
-            return {
-                content: [{ type: "text", text: `Error: ${error.message}` }],
-                isError: true,
-            };
-        }
+      try {
+        const auth = requireAuth(config.anilistToken);
+        if (!auth.isAuthorized) return auth.errorResponse;
+        const profile = await anilist.user.getAuthorized();
+        return {
+          content: [{ type: "text", text: JSON.stringify(profile, null, 2) }],
+        };
+      } catch (error: any) {
+        return {
+          content: [{ type: "text", text: `Error: ${error.message}` }],
+          isError: true,
+        };
+      }
     },
   );
 
@@ -89,7 +93,9 @@ export function registerUserTools(
     {
       user: z
         .number()
-        .describe("The user's AniList ID (Number ID only, DO NOT use username, any kind of string or other types except for numbers.)"),
+        .describe(
+          "The user's AniList ID (Number ID only, DO NOT use username, any kind of string or other types except for numbers.)",
+        ),
     },
     {
       title: "Get User Recent Activity",
@@ -97,17 +103,17 @@ export function registerUserTools(
       openWorldHint: true,
     },
     async ({ user }) => {
-        try {
-            const activities = await anilist.user.getRecentActivity(user);
-            return {
-                content: [{ type: "text", text: JSON.stringify(activities, null, 2) }],
-            };
-        } catch (error: any) {
-            return {
-                content: [{ type: "text", text: `Error: ${error.message}` }],
-                isError: true,
-            };
-        }
+      try {
+        const activities = await anilist.user.getRecentActivity(user);
+        return {
+          content: [{ type: "text", text: JSON.stringify(activities, null, 2) }],
+        };
+      } catch (error: any) {
+        return {
+          content: [{ type: "text", text: `Error: ${error.message}` }],
+          isError: true,
+        };
+      }
     },
   );
 
@@ -123,17 +129,17 @@ export function registerUserTools(
       openWorldHint: true,
     },
     async ({ user }) => {
-        try {
-            const profile = await anilist.user.profile(user);
-            return {
-                content: [{ type: "text", text: JSON.stringify(profile, null, 2) }],
-            };
-        } catch (error: any) {
-            return {
-                content: [{ type: "text", text: `Error: ${error.message}` }],
-                isError: true,
-            };
-        }
+      try {
+        const profile = await anilist.user.profile(user);
+        return {
+          content: [{ type: "text", text: JSON.stringify(profile, null, 2) }],
+        };
+      } catch (error: any) {
+        return {
+          content: [{ type: "text", text: `Error: ${error.message}` }],
+          isError: true,
+        };
+      }
     },
   );
 
@@ -149,17 +155,17 @@ export function registerUserTools(
       openWorldHint: true,
     },
     async ({ user }) => {
-        try {
-            const stats = await anilist.user.stats(user);
-            return {
-                content: [{ type: "text", text: JSON.stringify(stats, null, 2) }],
-            };
-        } catch (error: any) {
-            return {
-                content: [{ type: "text", text: `Error: ${error.message}` }],
-                isError: true,
-            };
-        }
+      try {
+        const stats = await anilist.user.stats(user);
+        return {
+          content: [{ type: "text", text: JSON.stringify(stats, null, 2) }],
+        };
+      } catch (error: any) {
+        return {
+          content: [{ type: "text", text: `Error: ${error.message}` }],
+          isError: true,
+        };
+      }
     },
   );
 
@@ -177,9 +183,13 @@ export function registerUserTools(
       openWorldHint: true,
     },
     async ({ options }) => {
-        return await graphqlMutation(config.anilistToken, async () => {
-            return await anilist.user.update(options);
-        }, "updateUser");
+      return await graphqlMutation(
+        config.anilistToken,
+        async () => {
+          return await anilist.user.update(options);
+        },
+        "updateUser",
+      );
     },
   );
 }
