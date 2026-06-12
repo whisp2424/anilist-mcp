@@ -4,13 +4,13 @@ import type AniList from "@yuna0x0/anilist-node";
 import type { ConfigSchema } from "../utils/schemas.js";
 import { requireAuth } from "../utils/auth.js";
 import { filterMedia, type FilteredMediaEntry } from "../utils/mediaFilter.js";
+import { graphqlMutation } from "../utils/graphql.js";
 
 export function registerMediaTools(
   server: McpServer,
   anilist: AniList,
   config: z.infer<typeof ConfigSchema>,
 ) {
-  // anilist.media.anime()
   server.tool(
     "get_anime",
     "Get detailed information about anime by AniList ID(s)",
@@ -32,45 +32,30 @@ export function registerMediaTools(
       openWorldHint: true,
     },
     async ({ ids, fullData }) => {
-      try {
-        const idArray = Array.isArray(ids) ? ids : [ids];
-        const results = await Promise.all(
-          idArray.map((id) => anilist.media.anime(id)),
-        );
-
-        // Filter results unless fullData is explicitly requested
-        const filteredResults = fullData ? results : filterMedia(results);
-
-        // Return single object if single ID was provided, array if multiple
-        const res = Array.isArray(ids)
-          ? filteredResults
-          : (filteredResults as FilteredMediaEntry[])[0];
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(res, null, 2),
-            },
-          ],
-        };
-      } catch (error: any) {
-        return {
-          content: [{ type: "text", text: `Error: ${error.message}` }],
-          isError: true,
-        };
-      }
+        try {
+            const idArray = Array.isArray(ids) ? ids : [ids];
+            const results = await Promise.all(
+                idArray.map((id) => anilist.media.anime(id)),
+            );
+            const filteredResults = fullData ? results : filterMedia(results);
+            const res = Array.isArray(ids) ? filteredResults : (filteredResults as FilteredMediaEntry[])[0];
+            return {
+                content: [{ type: "text", text: JSON.stringify(res, null, 2) }],
+            };
+        } catch (error: any) {
+            return {
+                content: [{ type: "text", text: `Error: ${error.message}` }],
+                isError: true,
+            };
+        }
     },
   );
 
-  // anilist.media.favouriteAnime()
   server.tool(
     "favourite_anime",
     "[Requires Login] Favourite or unfavourite an anime by its ID",
     {
-      id: z
-        .number()
-        .describe("The AniList ID of the anime to favourite/unfavourite"),
+      id: z.number().describe("The AniList ID of the anime to favourite/unfavourite"),
     },
     {
       title: "Favourite/Unfavourite Anime",
@@ -80,40 +65,17 @@ export function registerMediaTools(
       openWorldHint: true,
     },
     async ({ id }) => {
-      try {
-        const auth = requireAuth(config.anilistToken);
-        if (!auth.isAuthorized) {
-          return auth.errorResponse;
-        }
-
-        const result = await anilist.media.favouriteAnime(id);
-        return {
-          content: [
-            {
-              type: "text",
-              text: result
-                ? `Successfully added anime with ID ${id} to favourites.`
-                : `Anime with ID ${id} was removed from favourites or operation failed.`,
-            },
-          ],
-        };
-      } catch (error: any) {
-        return {
-          content: [{ type: "text", text: `Error: ${error.message}` }],
-          isError: true,
-        };
-      }
+        return await graphqlMutation(config.anilistToken, async () => {
+            return await anilist.media.favouriteAnime(id);
+        }, "favouriteAnime");
     },
   );
 
-  // anilist.media.favouriteManga()
   server.tool(
     "favourite_manga",
     "[Requires Login] Favourite or unfavourite a manga by its ID",
     {
-      id: z
-        .number()
-        .describe("The AniList ID of the manga to favourite/unfavourite"),
+      id: z.number().describe("The AniList ID of the manga to favourite/unfavourite"),
     },
     {
       title: "Favourite/Unfavourite Manga",
@@ -123,33 +85,12 @@ export function registerMediaTools(
       openWorldHint: true,
     },
     async ({ id }) => {
-      try {
-        const auth = requireAuth(config.anilistToken);
-        if (!auth.isAuthorized) {
-          return auth.errorResponse;
-        }
-
-        const result = await anilist.media.favouriteManga(id);
-        return {
-          content: [
-            {
-              type: "text",
-              text: result
-                ? `Successfully added manga with ID ${id} to favourites.`
-                : `Manga with ID ${id} was removed from favourites or operation failed.`,
-            },
-          ],
-        };
-      } catch (error: any) {
-        return {
-          content: [{ type: "text", text: `Error: ${error.message}` }],
-          isError: true,
-        };
-      }
+        return await graphqlMutation(config.anilistToken, async () => {
+            return await anilist.media.favouriteManga(id);
+        }, "favouriteManga");
     },
   );
 
-  // anilist.media.manga()
   server.tool(
     "get_manga",
     "Get detailed information about manga by AniList ID(s)",
@@ -171,34 +112,22 @@ export function registerMediaTools(
       openWorldHint: true,
     },
     async ({ ids, fullData }) => {
-      try {
-        const idArray = Array.isArray(ids) ? ids : [ids];
-        const results = await Promise.all(
-          idArray.map((id) => anilist.media.manga(id)),
-        );
-
-        // Filter results unless fullData is explicitly requested
-        const filteredResults = fullData ? results : filterMedia(results);
-
-        // Return single object if single ID was provided, array if multiple
-        const res = Array.isArray(ids)
-          ? filteredResults
-          : (filteredResults as FilteredMediaEntry[])[0];
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(res, null, 2),
-            },
-          ],
-        };
-      } catch (error: any) {
-        return {
-          content: [{ type: "text", text: `Error: ${error.message}` }],
-          isError: true,
-        };
-      }
+        try {
+            const idArray = Array.isArray(ids) ? ids : [ids];
+            const results = await Promise.all(
+                idArray.map((id) => anilist.media.manga(id)),
+            );
+            const filteredResults = fullData ? results : filterMedia(results);
+            const res = Array.isArray(ids) ? filteredResults : (filteredResults as FilteredMediaEntry[])[0];
+            return {
+                content: [{ type: "text", text: JSON.stringify(res, null, 2) }],
+            };
+        } catch (error: any) {
+            return {
+                content: [{ type: "text", text: `Error: ${error.message}` }],
+                isError: true,
+            };
+        }
     },
   );
 }
